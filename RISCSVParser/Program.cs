@@ -12,18 +12,20 @@ namespace RISCSVParser
 		private const string ReadDir =
 			@"C:\Users\uizdg\The University of Nottingham\Official RIS Team - Documents\Dan Giddins RIS Work\";
 		private const string WriteDir =
-			@"C:\Users\uizdg\The University of Nottingham\Official RIS Team - Documents\Dan Giddins RIS Work\csv\";
-		private const string OldFilename = "appointments_before";
-		private const string NewFilename = "appointments_rounding";
+			@"C:\Users\uizdg\The University of Nottingham\Official RIS Team - Documents\Dan Giddins RIS Work\fte_compare\";
+		private const string OldFilename = "old_fte_values";
+		private const string NewFilename = "future_fte_fix";
+		private const string AllPeopleFilename = "2020_06_29_15_21_52_all_people";
 
 		static void Main() =>
 			CompareFTE();
 
 		private static void CompareFTE()
 		{
-			var output = new List<string[]> { new string[] { "record_id", "old_fte", "new_fte" } };
-			var oldCSV = GetData(OldFilename);
-			var newCSV = GetData(NewFilename);
+			var output = new List<string[]> { new string[] { "appointment_id", "old_fte", "new_fte" } };
+			var allPeople = GetData(AllPeopleFilename).Select(x => x[0]).ToList();
+			var oldCSV = GetData(OldFilename);//.Where(x => allPeople.Contains(x[0])).ToList();
+			var newCSV = GetData(NewFilename);//.Where(x => allPeople.Contains(x[0])).ToList();
 			foreach (var oldLine in oldCSV)
 			{
 				string[] outputLine;
@@ -32,18 +34,17 @@ namespace RISCSVParser
 				if (newLine == null)
 				{
 					outputLine = new string[] { oldLine[1], oldFTE, "NO RECORD!" };
-					Console.WriteLine(outputLine);
 					output.Add(outputLine);
 				}
-				//else
-				//{
-				//	var newFTE = newLine[12];
-				//	if (oldFTE != newFTE)
-				//	{
-				//		outputLine = new string[] { oldLine[1], oldFTE, newFTE };
-				//		output.Add(outputLine);
-				//	}
-				//}
+				else
+				{
+					var newFTE = newLine[12];
+					if (oldFTE != newFTE)
+					{
+						outputLine = new string[] { oldLine[1], oldFTE, newFTE };
+						output.Add(outputLine);
+					}
+				}
 			}
 			WriteToFile(output);
 		}
@@ -51,10 +52,12 @@ namespace RISCSVParser
 		private static void WriteToFile(List<string[]> output)
 		{
 			Directory.CreateDirectory(WriteDir);
-			var sw = new StreamWriter($"{WriteDir}{DateTime.Now.ToString("yyyy_MM_dd_HH_mm_ss")}_csv.csv");
-			foreach (var line in output)
+			using (var sw = new StreamWriter($"{WriteDir}{DateTime.Now.ToString("yyyy_MM_dd_HH_mm_ss")}_fte_compare.csv"))
 			{
-				sw.WriteLine(line);
+				foreach (var line in output)
+				{
+					sw.WriteLine(string.Join(",", line));
+				}
 			}
 		}
 
@@ -65,7 +68,7 @@ namespace RISCSVParser
 			string line;
 			while ((line = sr.ReadLine()) != null)
 			{
-				result.Add(line.Split(','));
+				result.Add(line.Split(',', StringSplitOptions.None));
 			}
 			return result;
 		}
